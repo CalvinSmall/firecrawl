@@ -1,7 +1,9 @@
 services:
   # 1. The API (The Gateway)
   api:
-    image: ghcr.io/firecrawl/api:latest # Using the official Mendable/Firecrawl image
+    build:
+      context: ./apps/api
+      dockerfile: Dockerfile
     container_name: firecrawl-api
     environment:
       - API_KEY=${API_KEY}
@@ -21,7 +23,9 @@ services:
 
   # 2. The Worker (The Crawler Engine)
   worker:
-    image: ghcr.io/firecrawl/worker:latest
+    build:
+      context: ./apps/worker
+      dockerfile: Dockerfile
     container_name: firecrawl-worker
     command: ["npm", "run", "start:worker"] # We tell the same image to act as a worker
     environment:
