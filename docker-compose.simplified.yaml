@@ -1,7 +1,7 @@
 services:
   # 1. The API (The Gateway)
   api:
-    image: mendable/firecrawl:latest # Using the official Mendable/Firecrawl image
+    image: ghcr.io/firecrawl/firecrawl:lastest # Using the official Mendable/Firecrawl image
     container_name: firecrawl-api
     environment:
       - API_KEY=${API_KEY}
