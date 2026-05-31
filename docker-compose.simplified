@@ -1,0 +1,71 @@
+services:
+  # 1. The API (The Gateway)
+  api:
+    image: mendable/firecrawl:latest # Using the official Mendable/Firecrawl image
+    container_name: firecrawl-api
+    environment:
+      - API_KEY=${API_KEY}
+      - REDIS_URL=${REDIS_URL}
+      - DATABASE_URL=${DATABASE_URL}
+      - PLAYWRIGHT_MICROSERVICE_URL=${PLAYWRIGHT_MICROSERVICE_URL}
+      - PORT=3000
+      - NODE_ENV=production
+    ports:
+      - "3000:3000"
+    depends_on:
+      redis:
+        condition: service_healthy
+      postgres:
+        condition: service_started
+    restart: unless-stopped
+
+  # 2. The Worker (The Crawler Engine)
+  worker:
+    image: mendable/firecrawl:latest
+    container_name: firecrawl-worker
+    command: ["npm", "run", "start:worker"] # We tell the same image to act as a worker
+    environment:
+      - API_KEY=${API_KEY}
+      - REDIS_URL=${REDIS_URL}
+      - DATABASE_URL=${DATABASE_URL}
+      - PLAYWRIGHT_MICROSERVICE_URL=${PLAYWRIGHT_MICROSERVICE_URL}
+    depends_on:
+      redis:
+        condition: service_healthy
+    restart: unless-stopped
+
+  # 3. Redis (The Task Orchestrator)
+  redis:
+    image: redis:7-alpine
+    container_name: firecrawl-redis
+    command: ["redis-server", "--appendonly", "yes"] # Persistence enabled
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 5
+    restart: unless-stopped
+
+  # 4. Playwright (The Browser Service)
+  playwright:
+    image: browserless/chrome:latest
+    container_name: firecrawl-playwright
+    environment:
+      - MAX_CONCURRENT_SESSIONS=10
+      - CONNECTION_TIMEOUT=60000
+    restart: unless-stopped
+
+  # 5. Postgres (The Data Store)
+  postgres:
+    image: postgres:16-alpine
+    container_name: firecrawl-postgres
+    environment:
+      - POSTGRES_USER=postgres
+      - POSTGRES_PASSWORD=${POSTGRES_PASSWORD} # Use a secret here!
+      - POSTGRES_DB=firecrawl
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    restart: unless-stopped
+
+volumes:
+  postgres_data:
